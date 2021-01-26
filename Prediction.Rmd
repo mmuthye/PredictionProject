@@ -1,7 +1,7 @@
 ---
-title: "Prediction"
+title: "Prediction Project"
 author: "~ M.A.N.D.A.R ~"
-date: "1/26/2021"
+date: "26-JAN-2021"
 output: html_document
 ---
 
@@ -63,7 +63,7 @@ indColToRemove <- which(colSums(is.na(TrainData) | TrainData == "") > 0.9*dim(Tr
 TrainDataClean <- TrainData[,-indColToRemove]
 ```
 
-We can also see that first seven columns of the dataset contains information about the people carrying out the activities and timestamp of their activities etc. Thus, these can be remoed from the training data to be used to build our model.
+We can also see that first seven columns of the dataset contains information about the people carrying out the activities and timestamp of their activities etc. Since they do not impact Classe variable, these can be removed from the training data to be used to build our model.
 
 ```{r Prep3}
 TrainDataClean <- TrainDataClean[,-c(1:7)]
@@ -86,7 +86,7 @@ Cleaned testing data also reduced the number of columns to 59. We are now good a
 
 ### Building the models
 
-The goal of this project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set, against which the models to be built.
+The goal of this project is to predict the manner in which the participants did the exercise. This is the "classe" variable in the training set, against which the models to be built.
 
 Let's partition the cleaned training data to have 75% of the data to be used towards building training models.
 ```{r mod1}
@@ -218,6 +218,13 @@ We can see that the Accuracy of the Gradient Boosting model increases with incre
 
 This shows that the random forest model is the best one. We will then use it to predict the values of classe for the test data set.
 
+Let's run the best model on the testing data of 20 variables, and find out the output.
+
+```{R decision}
+Result <- predict(model_RF, newdata=TestDataClean)
+print(Result)
+```
+
 ## Conclusion
 
 The goal of this project is to predict the manner in which the participants did the exercise. This is the "classe" variable in the training set, against which 3 models were built.
@@ -226,7 +233,7 @@ The goal of this project is to predict the manner in which the participants did 
 * Random Forest - Accuracy: 99.39%
 * Gradient Boost - Accurtacy: 96.04%
 
-We can conclus that the Random Forest model fitted the best.
+We can conclude that the Random Forest model fitted the best.
 
 
 ## Appendix
@@ -251,4 +258,5 @@ print(model_RF)
 **3. Gradient Boosting Method**
 ```{r App23}
 print(model_GBM)
+
 ```
