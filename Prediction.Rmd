@@ -1,0 +1,247 @@
+---
+title: "Prediction"
+author: "~ M.A.N.D.A.R ~"
+date: "1/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(caret)
+library(rattle)
+library(rpart)
+library(randomForest)
+library(gbm)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+
+The goal of this project is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. 
+
+More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+### Data
+
+The training data for this project are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har
+
+## Executive Summary
+
+
+## Data Modeling
+
+You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases. 
+
+### Data Preparation
+
+Firstly, load the Training and Testing datasets from the given URLs and check their dimensions and structure of training data (shown in *Appendix-1*)
+
+```{r Prep1}
+# Load the training data and check its dimensions
+TrainData <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"), header=TRUE)
+dim(TrainData)
+
+# Load the training data and check its dimensions
+TestData <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"), header=TRUE)
+dim(TestData)
+```
+
+We can see that the training data set is made of 19,622 observations (rows) on 160 variables (columns). We can notice that many columns have NA or blank values. Thus, we need to remove them to use cleaner data for building model(s). So, let's get the indexes of the columns having at least 90% of NA or blank values on the training dataset
+
+```{r Prep2}
+indColToRemove <- which(colSums(is.na(TrainData) | TrainData == "") > 0.9*dim(TrainData)[1]) 
+TrainDataClean <- TrainData[,-indColToRemove]
+```
+
+We can also see that first seven columns of the dataset contains information about the people carrying out the activities and timestamp of their activities etc. Thus, these can be remoed from the training data to be used to build our model.
+
+```{r Prep3}
+TrainDataClean <- TrainDataClean[,-c(1:7)]
+dim(TrainDataClean)
+
+```
+
+After cleaning, the new training data set has only 53 columns.
+This is now a cleaner training dataset that can be use to build our model.
+But before that, let's do the same cleanup to the testing data as well.
+
+```{r Prep4}
+indColToRemove <- which(colSums(is.na(TestData) |TestData=="")>0.9*dim(TestData)[1]) 
+TestDataClean <- TestData[,-indColToRemove]
+TestDataClean <- TestDataClean[,-1]
+dim(TestDataClean)
+```
+
+Cleaned testing data too have 53 columns, so we are good; and now ready to build the model(s).
+
+### Building the models
+
+The goal of this project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set, against which the models to be built.
+
+Let's partition the cleaned training data to have 75% of the data to be used towards building training models.
+```{r mod1}
+# Here we create a partition of the traning data set 
+set.seed(12345)
+inTrain1 <- createDataPartition(TrainDataClean$classe, p=0.75, list=FALSE)
+Train1 <- TrainDataClean[inTrain1,]
+Test1 <- TrainDataClean[-inTrain1,]
+dim(Train1)
+```
+
+Let's now models using 3 different methods: 
+
+* Classification tree 
+* Random forest 
+* Gradient boosting method
+
+**1. Classification Tree**
+
+For plotting a Classification Tree, let's train the data using 5 folds. Usually, 5 or 10 folds can be used, but 10 folds gives higher run times with no significant increase of the accuracy.
+
+Once done, we will draw the Classification Tree.
+
+```{r CT1}
+trControl <- trainControl(method = "cv", number = 5)
+
+model_CT <- train(classe ~ ., data=Train1, method="rpart", trControl=trControl)
+
+fancyRpartPlot(model_CT$finalModel)
+
+```
+
+Let's now check the accuracy of the model.
+
+In order to limit the effects of overfitting, and improve the efficicency of the models, we will use the *cross-validation technique. 
+
+```{r CT2}
+trainpred <- predict(model_CT,newdata=Test1)
+
+confMatCT <- confusionMatrix(Test1$classe,trainpred)
+
+# display confusion matrix and model accuracy
+
+confMatCT$table         # Confusion Matrix
+
+confMatCT$overall[1]    # Accuracy
+
+```
+
+We can notice that the accuracy of this first model is very low (about 55%). This means that the outcome class will not be predicted very well by the other predictors.
+
+**2. Random Forest**
+
+Let's create a model using Random forest technique and plot the Accuracy of the model against predictors.
+```{r RF1}
+
+model_RF <- train(classe~., data=Train1, method="rf", trControl=trControl, verbose=FALSE)
+
+plot(model_RF, main="Accuracy of Random forest model by number of predictors")
+
+```
+
+Let's now check the accuracy of the model.
+
+```{r RF2}
+
+trainpred <- predict(model_RF,newdata=Test1)
+
+confMatRF <- confusionMatrix(Test1$classe,trainpred)
+
+# display confusion matrix and model accuracy
+
+confMatRF$table         # Confusion Matrix
+
+confMatRF$overall[1]    # Accuracy
+
+```
+
+With random forest, we reach an accuracy of 99.3% using cross-validation with 5 steps.
+
+It is also important to find out the optimal number of predictors that are significant. Let's find out the important variables.
+
+```{r RF3}
+MostImpVars <- varImp(model_RF)
+MostImpVars
+```
+
+Here we can notice that the most number of predictors out of total 52 are only 20. 
+
+Let's also find out the model error of the Random forest model.
+
+```{r RF4}
+plot(model_RF$finalModel,main="Model error of Random forest model by number of trees")
+
+```
+
+With the plot, we can concluse that there is no significal increase of the accuracy with more predictors, and the slope decreases significantly after the initial important predictors, even if the accuracy is still very good. The fact that not all the accuracy is worse with all the available predictors lets us suggest that there may be some dependencies between them.
+
+**3. Gradient Boosting Method**
+
+Let's create a model using Gradient Boosting Model and plot the Accuracy of the model against predictors.
+```{r GBM1}
+
+model_GBM <- train(classe~., data=Train1, method="gbm", trControl=trControl, verbose=FALSE)
+
+plot(model_GBM)
+```
+
+Let's now check the accuracy of the model.
+
+```{r GBM2}
+trainpred <- predict(model_GBM,newdata=Test1)
+
+confMatGBM <- confusionMatrix(Test1$classe,trainpred)
+
+confMatGBM$table        # Confusion Matrix
+
+confMatGBM$overall[1]   # Accuracy
+
+```
+
+We can see that the Accuracy of the Gradient Boosting model with 5 folds is 95.9%.
+
+### Decision
+
+This shows that the random forest model is the best one. We will then use it to predict the values of classe for the test data set.
+
+## Conclusion
+
+The goal of this project is to predict the manner in which the participants did the exercise. This is the "classe" variable in the training set, against which 3 models were built.
+
+* Classification Tree - Accuracy: 
+* Random Forest - Accuracy:
+* Gradient Boost - Accurtacy: 
+
+We can conclus that the Random Forest model fitted the best.
+
+
+## Appendix
+
+### Appendix-1: Structure of Training Data
+```{r App1}
+str(TrainData)
+```
+
+### Appendix-2: Details of the 3 models
+
+**1. Classification Tree**
+```{r App21}
+print(model_CT)
+```
+
+**2. Random Forest**
+```{r App22}
+print(model_RF)
+```
+
+**3. Gradient Boosting Method**
+```{r App23}
+print(model_GBM)
+```
