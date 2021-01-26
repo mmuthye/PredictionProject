@@ -12,6 +12,8 @@ library(rpart)
 library(randomForest)
 library(gbm)
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
+
 ```
 
 ## Background
@@ -34,10 +36,11 @@ The data for this project come from this source: http://web.archive.org/web/2016
 
 ## Executive Summary
 
+This report describes different methods used to build models, how they are cross validated, what is the accuracy of each of the model, and which is the best model. Here, we tried 3 different models. We first used the training data to build the models, and then used the models to predict using the test data and identified the Accuracy in each of the model. After comparing all the 3 models, we then concluded the best model with evidence (with respect to Accuracy).
 
 ## Data Modeling
 
-You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases. 
+The first step before building data models is eye-balling the structure of the datasets and cleaning the data as required. A cleaned data always helps in building better models. Let's analyze and prepare the datasets before we build the models.
 
 ### Data Preparation
 
@@ -53,7 +56,7 @@ TestData <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pm
 dim(TestData)
 ```
 
-We can see that the training data set is made of 19,622 observations (rows) on 160 variables (columns). We can notice that many columns have NA or blank values. Thus, we need to remove them to use cleaner data for building model(s). So, let's get the indexes of the columns having at least 90% of NA or blank values on the training dataset
+We can see that the training data set is made of 19,622 observations (rows) on 160 variables (columns). From the structure of the training data in *Appendix-1* we can also notice that many columns have NA or blank values. Thus, we need to remove them to use cleaner data for building model(s). So, let's get the indexes of the columns having at least 90% of NA or blank values on the training dataset
 
 ```{r Prep2}
 indColToRemove <- which(colSums(is.na(TrainData) | TrainData == "") > 0.9*dim(TrainData)[1]) 
@@ -79,7 +82,7 @@ TestDataClean <- TestDataClean[,-1]
 dim(TestDataClean)
 ```
 
-Cleaned testing data too have 53 columns, so we are good; and now ready to build the model(s).
+Cleaned testing data also reduced the number of columns to 59. We are now good and now ready to build the models.
 
 ### Building the models
 
@@ -100,6 +103,8 @@ Let's now models using 3 different methods:
 * Classification tree 
 * Random forest 
 * Gradient boosting method
+
+Details of the 3 models can be found in *Appendix-2*
 
 **1. Classification Tree**
 
@@ -133,7 +138,8 @@ confMatCT$overall[1]    # Accuracy
 
 ```
 
-We can notice that the accuracy of this first model is very low (about 55%). This means that the outcome class will not be predicted very well by the other predictors.
+We can notice that the accuracy of this first model is very low (about 49%). This means that the outcome class will not be predicted very well by the other predictors.
+
 
 **2. Random Forest**
 
@@ -142,13 +148,13 @@ Let's create a model using Random forest technique and plot the Accuracy of the 
 
 model_RF <- train(classe~., data=Train1, method="rf", trControl=trControl, verbose=FALSE)
 
-plot(model_RF, main="Accuracy of Random forest model by number of predictors")
-
 ```
 
 Let's now check the accuracy of the model.
 
 ```{r RF2}
+
+plot(model_RF, main="Accuracy of Random forest model by number of predictors")
 
 trainpred <- predict(model_RF,newdata=Test1)
 
@@ -162,7 +168,7 @@ confMatRF$overall[1]    # Accuracy
 
 ```
 
-With random forest, we reach an accuracy of 99.3% using cross-validation with 5 steps.
+With random forest, we reach an accuracy of 99.4% using cross-validation with 5 steps.
 
 It is also important to find out the optimal number of predictors that are significant. Let's find out the important variables.
 
@@ -181,6 +187,7 @@ plot(model_RF$finalModel,main="Model error of Random forest model by number of t
 ```
 
 With the plot, we can concluse that there is no significal increase of the accuracy with more predictors, and the slope decreases significantly after the initial important predictors, even if the accuracy is still very good. The fact that not all the accuracy is worse with all the available predictors lets us suggest that there may be some dependencies between them.
+
 
 **3. Gradient Boosting Method**
 
@@ -205,7 +212,7 @@ confMatGBM$overall[1]   # Accuracy
 
 ```
 
-We can see that the Accuracy of the Gradient Boosting model with 5 folds is 95.9%.
+We can see that the Accuracy of the Gradient Boosting model increases with increase in Tree depth and  Accuracy with 5 folds is little over 96%.
 
 ### Decision
 
@@ -215,9 +222,9 @@ This shows that the random forest model is the best one. We will then use it to 
 
 The goal of this project is to predict the manner in which the participants did the exercise. This is the "classe" variable in the training set, against which 3 models were built.
 
-* Classification Tree - Accuracy: 
-* Random Forest - Accuracy:
-* Gradient Boost - Accurtacy: 
+* Classification Tree - Accuracy: 48.78%
+* Random Forest - Accuracy: 99.39%
+* Gradient Boost - Accurtacy: 96.04%
 
 We can conclus that the Random Forest model fitted the best.
 
