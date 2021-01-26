@@ -24,7 +24,7 @@ The goal of this project is to use data from accelerometers on the belt, forearm
 
 More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
 
-### Data
+### Data Source
 
 The training data for this project are available here:
 https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv

@@ -1,4 +1,4 @@
-# PredictionProject
+# Prediction Project
 Coursera - Practical Machine Learning - Course Project - Prediction
 
 ## Background
